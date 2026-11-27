@@ -1,10 +1,77 @@
 const $=id=>document.getElementById(id), app=$('app'), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])), num=n=>Number(n).toLocaleString('ko-KR'), load=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}}, save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}};let page='home',role=Number(load('role',0))||0,floor=10,live=false,petQuery='',element='',grade='',limit=40,cat='전체',posts=load('posts',[]),raid=load('raid',null),mode=0,stage=0,levels=[140,140,140,140,140],defaults=[[100,4,0],[98,4,0],[102,3,0],[103,3,0],[101,2,0]],alloc=defaults.map(a=>a.slice());
 const colors=['#4ADE80','#60A5FA','#F87171','#FACC15'],els=['지','수','화','풍'],roles=['전체','1순','2순','3순','1완','2완'];const base=[[10,'수',['홉킨스(보스) 무지개'],['카라쿠(왼쪽) 무지개','카라쿠(오른쪽) 무지개'],0,'카라쿠 두마리>보스>개피'],[20,'수',['적 오로라'],['헷지(왼쪽) 무지개','헷지(오른쪽) 무지개'],0,'헷지 두마리>보스>개피'],[30,'지',[],[],0,'아라 두마리>보스>개피'],[40,'지',[],[],0,'매그노>보스>개피'],[50,'수',['마그노(보스 왼쪽) 무지개'],[],0,'마그노>머그노>매트노>개피'],[60,'수',[],[],0,'보투케스 두마리>보스>개피'],[70,'지',['오로라'],['혈기노 무지개'],1,'혈기노>라이쿠스>개피'],[80,'지',['보스 무지개','앞 비노 무지개'],['잔비노 무지개','뒤 비노 무지개'],2,'잔비노>기노>보스>개피'],[90,'수',[],['자피온 무지개'],2,'자피온>킹고르>뒷줄>개피'],[100,'수',['본드래곤(왼쪽) 무지개','아이스드래곤 무지개'],['본드래곤(오른쪽) 무지개','어스드래곤 무지개'],2,'본드래곤>뒷줄>개피'],[101,'지',['오로라','스노볼 무지개'],['엘크 무지개','카무르 무지개','케라스 무지개'],3,'멍클>엘크>개피']];if(!raid)raid=base;
-const btn=(s,fn,a=false)=>`<button class="${a?'active':''}" onclick="${esc(fn)}">${s}</button>`;function toast(s){let e=document.createElement('div');e.className='toast';e.textContent=s;document.body.append(e);setTimeout(()=>e.remove(),1800)}function go(p){page=p;live=false;render();scrollTo(0,0)}function render(){document.body.classList.toggle('live',live);$('nav').innerHTML=[['home','⌂ 홈'],['pets','▤ 도감'],['rank','♜ 랭킹'],['calc','▦ 계산기'],['guide','▧ 공략']].map(([p,n])=>btn(n,`go('${p}')`,page===p)).join('');({home,pets,rank,calc,guide,raid:raidPage,admin,sale,rebirth}[page]||home)()}
+const btn=(s,fn,a=false)=>`<button class="${a?'active':''}" onclick="${esc(fn)}">${s}</button>`;function toast(s){let e=document.createElement('div');e.className='toast';e.textContent=s;document.body.append(e);setTimeout(()=>e.remove(),1800)}
+let activeScreen={page:'home'};
+let activeScreenDialog=null;
+
+function go(p){
+  if(activeScreen.page===p&&activeScreen.petIndex===undefined&&!activeScreen.overlay){
+    scrollTo(0,0);
+    return;
+  }
+  navigateScreen({page:p});
+}
+
+function openPetDetail(i){
+  navigateScreen({page:'pets',petIndex:i});
+}
+
+function openScreenOverlay(overlay){
+  navigateScreen({...activeScreen,overlay},window.scrollY);
+}
+
+function closeScreenDialog(dialog){
+  if(dialog===activeScreenDialog)history.back();
+  else dialog.close();
+}
+
+function navigateScreen(next,scroll=0){
+  history.replaceState({...history.state,hwansoonyang:activeScreen,scroll:window.scrollY},'');
+  history.pushState({hwansoonyang:next,scroll},'');
+  restoreScreen(next,scroll);
+}
+
+function restoreScreen(next,scroll=0){
+  if(activeScreenDialog){
+    activeScreenDialog.close();
+    activeScreenDialog.remove();
+    activeScreenDialog=null;
+  }
+  const previous=activeScreen;
+  activeScreen=next;
+  if(page!==next.page||previous.petIndex!==next.petIndex){
+    page=next.page;
+    live=false;
+    if(next.petIndex!==undefined&&PETS[next.petIndex])detail(next.petIndex);
+    else render();
+  }
+  scrollTo(0,scroll);
+  const overlay=next.overlay;
+  if(overlay?.kind==='post'&&posts[overlay.index]?.pub)activeScreenDialog=show040(posts[overlay.index]);
+  if(overlay?.kind==='notice')activeScreenDialog=modal(overlay.message);
+  if(overlay?.kind==='preview'&&draft040)activeScreenDialog=show040(draft040,true);
+  activeScreenDialog?.addEventListener('cancel',event=>{
+    event.preventDefault();
+    closeScreenDialog(event.currentTarget);
+  });
+}
+
+function restoreHistoryEntry(state){
+  restoreScreen(state?.hwansoonyang??{page:'home'},state?.scroll);
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  history.scrollRestoration='manual';
+  if(history.state?.hwansoonyang)restoreHistoryEntry(history.state);
+  else history.replaceState({...history.state,hwansoonyang:activeScreen,scroll:0},'');
+  window.addEventListener('popstate',event=>restoreHistoryEntry(event.state));
+});
+
+function render(){document.body.classList.toggle('live',live);$('nav').innerHTML=[['home','⌂ 홈'],['pets','▤ 도감'],['rank','♜ 랭킹'],['calc','▦ 계산기'],['guide','▧ 공략']].map(([p,n])=>btn(n,`go('${p}')`,page===p)).join('');({home,pets,rank,calc,guide,raid:raidPage,admin,sale,rebirth}[page]||home)()}
 function home(){app.innerHTML=`<img class="banner" src="banner.png" alt="환수냥이"><section><h2>모험을 시작하세요</h2><div class="grid">${[['pets','페트 도감'],['rank','명예의 전당'],['rebirth','환포 계산기'],['sale','페트 판매 계산기'],['guide','모험가의 지침서'],['raid','라돈타 실전 공략']].map(([p,n])=>btn(n,`go('${p}')`)).join('')}</div></section><small>도감 ${PETS.length}종</small>`}
-function petCards(){let list=PETS.map((p,i)=>[p,i]).filter(([p])=>p[0].includes(petQuery)&&(!element||Number(p[10+els.indexOf(element)])>0)&&(!grade||p[15]===grade));$('petlist').innerHTML=`<small>${list.length}종</small>`+list.slice(0,limit).map(([p,i])=>`<section onclick="detail(${i})" style="cursor:pointer"><div class="line"><strong>${esc(p[0])}</strong><small>${esc(p[15])}</small></div>${bar(p)}<small>${esc(p[16])} · 총성장 ${Number(p[9]).toFixed(3)}</small></section>`).join('')+(list.length>limit?btn('더 보기','limit+=40;petCards()'):'')}
+function petCards(){let list=PETS.map((p,i)=>[p,i]).filter(([p])=>p[0].includes(petQuery)&&(!element||Number(p[10+els.indexOf(element)])>0)&&(!grade||p[15]===grade));$('petlist').innerHTML=`<small>${list.length}종</small>`+list.slice(0,limit).map(([p,i])=>`<section onclick="openPetDetail(${i})" style="cursor:pointer"><div class="line"><strong>${esc(p[0])}</strong><small>${esc(p[15])}</small></div>${bar(p)}<small>${esc(p[16])} · 총성장 ${Number(p[9]).toFixed(3)}</small></section>`).join('')+(list.length>limit?btn('더 보기','limit+=40;petCards()'):'')}
 function bar(p){return `<div class="bar">${els.map((e,i)=>`<span style="width:${Number(p[10+i]||0)*10}%;background:${colors[i]}"></span>`).join('')}</div><div>${els.map((e,i)=>p[10+i]?`<span style="color:${colors[i]};margin-right:10px">${e} ${esc(p[10+i])}</span>`:'').join('')}</div>`}function pets(){app.innerHTML=`<h1>페트 도감</h1><input placeholder="페트 이름 검색" value="${esc(petQuery)}" oninput="petQuery=this.value;limit=40;petCards()"><div class="roles">${['',...els].map(e=>btn(e||'전체',`element='${e}';pets()`,element===e)).join('')}</div><select onchange="grade=this.value;petCards()"><option value="">모든 판매등급</option>${[...new Set(PETS.map(p=>p[15]).filter(Boolean))].map(g=>`<option ${g===grade?'selected':''}>${esc(g)}</option>`).join('')}</select><div id="petlist"></div>`;petCards()}
-function detail(i){let p=PETS[i];app.innerHTML=`${btn('← 도감','go(\'pets\')')}<h1>${esc(p[0])}</h1><section>${bar(p)}<p>획득처: ${esc(p[16])}</p><p>${esc(p[14])} · ${esc(p[15])}</p><div class="stats">${['공','방','순','체'].map((s,j)=>`<div>${s}<h3>${p[j+1]}</h3><small>${Number(p[j+5]).toFixed(3)}</small></div>`).join('')}</div><p>총성장 ${Number(p[9]).toFixed(3)}</p></section><section><h2>정석 능력치</h2><label>레벨<input id="pl" type="number" min="1" value="140" oninput="baseline(${i})"></label><div id="baseline"></div></section><section><h2>동일 페트 랭킹</h2><small>실시간 데이터 연동 전</small></section>`;baseline(i)}function baseline(i){let p=PETS[i],l=Math.max(1,Number($('pl').value)||1);$('baseline').innerHTML='<div class="stats">'+['공','방','순','체'].map((s,j)=>`<div>${s}<h3>${Math.trunc(p[j+1]+p[j+5]*(l-1))}</h3></div>`).join('')+'</div>'}
+function detail(i){let p=PETS[i];app.innerHTML=`${btn('← 도감','history.back()')}<h1>${esc(p[0])}</h1><section>${bar(p)}<p>획득처: ${esc(p[16])}</p><p>${esc(p[14])} · ${esc(p[15])}</p><div class="stats">${['공','방','순','체'].map((s,j)=>`<div>${s}<h3>${p[j+1]}</h3><small>${Number(p[j+5]).toFixed(3)}</small></div>`).join('')}</div><p>총성장 ${Number(p[9]).toFixed(3)}</p></section><section><h2>정석 능력치</h2><label>레벨<input id="pl" type="number" min="1" value="140" oninput="baseline(${i})"></label><div id="baseline"></div></section><section><h2>동일 페트 랭킹</h2><small>실시간 데이터 연동 전</small></section>`;baseline(i)}function baseline(i){let p=PETS[i],l=Math.max(1,Number($('pl').value)||1);$('baseline').innerHTML='<div class="stats">'+['공','방','순','체'].map((s,j)=>`<div>${s}<h3>${Math.trunc(p[j+1]+p[j+5]*(l-1))}</h3></div>`).join('')+'</div>'}
 function rank(){app.innerHTML=`<h1>명예의 전당</h1><section><h2>동일 페트별 랭킹</h2><small>실시간 랭킹은 아직 연결되지 않았습니다. 아래는 제공된 라고고 공략 화면의 예시 기록입니다.</small><details><summary>라고고 · 전투력 TOP 3 (예시)</summary>${[['키아나',142,284,236,219,1425],['발리',141,280,236,217,1420],['오리다요',140,280,234,215,1412]].map((r,i)=>`<section><strong>${i+1}. ${r[0]} Lv.${r[1]}</strong><p class="big">${r[2]+r[3]+r[4]+r[5]/4}</p><div class="stats">${r.slice(2).map((v,j)=>`<div>${['공','방','순','체'][j]}<br>${v}</div>`).join('')}</div></section>`).join('')}</details></section>`}
 function calc(){app.innerHTML=`<h1>계산기</h1><section class="grid">${btn('환포 계산기',"go('rebirth')")}${btn('페트 판매 계산기',"go('sale')")}</section>`}let sl=100,sg=10;function sale(){app.innerHTML=`<h1>페트 판매 계산기</h1><section><label>판매 등급</label><div class="roles">${[[10,'일반등급'],[30,'2등급'],[50,'1등급']].map(([v,n])=>btn(n,`sg=${v};sale()`,sg===v)).join('')}</div></section><section style="border:1px solid #EDCB90"><label>판매 레벨</label><div class="levelrow">${btn('−','sl=Math.max(1,sl-1);sale()')}<input type="number" min="1" max="${XP.length+1}" style="font-size:32px;text-align:center" value="${sl}" oninput="sl=Number(this.value);saleResult()">${btn('+','sl=Math.min(XP.length+1,sl+1);sale()')}</div><div class="roles">${[80,90,100,110,120].map(v=>btn(v,`sl=${v};sale()`,sl===v)).join('')}</div></section><section id="saleout"></section>`;saleResult()}function saleResult(){let x=XP.slice(0,sl-1).reduce((a,b)=>a+b,0),price=sg*(sl*sl+sl-1);$('saleout').innerHTML=Number.isInteger(sl)&&sl>=1&&sl<=XP.length+1?`<small>예상 판매가격</small><div class="big">${num(price)} ST</div><p>누적 경험치 ${num(x)}</p><p>예상 사냥시간 ${(x/8000000).toFixed(2)}시간</p><p>시간당 판매금액 ${x?num(Math.round(price/(x/8000000))):'—'} ST</p><div class="stats grades">${[10,30,50].map((g,i)=>`<div>${['일반등급','2등급','1등급'][i]}<br>${num(g*(sl*sl+sl-1))}</div>`).join('')}</div><small>시간당 800만 경험치 기준 · Lv.1부터 · 순수익 아님</small>`:'지원 레벨 범위를 확인하세요.'}
 function rebCalc(){let prev=20,carry=[0,0,0,0],sumLv=0;return levels.map((l,i)=>{let total=prev+3*(l-1),a=alloc[i],s=mode===0?[a[0],a[1],a[2],total-a[0]-a[1]-a[2]]:[a[0],total-a[0]-a[1]-a[2],a[2],a[1]],real=s.map((v,j)=>v+carry[j]);sumLv+=l;let k=Math.trunc(total/12+20*(i+1)/4+(sumLv-85*(i+1))/4),den=real.reduce((a,b)=>a+b,0),raw=real.map(v=>Math.trunc((v/den*k+.5)*100)/100),ap=raw.map(Math.trunc);carry=raw.map((v,j)=>v-ap[j]);prev=ap.reduce((a,b)=>a+b,0)+10*(i+1);return {s,k,prev,ap,total}})}async function copyRebirth(){try{await navigator.clipboard.writeText(rebCalc().map((r,i)=>`${i+1}환: ${r.prev}`).join("\n"));toast("복사 완료")}catch{toast("복사 권한을 확인하세요")}} function rebirth(){let r=rebCalc()[stage];app.innerHTML=`<h1>환포 계산기</h1><section><div class="roles">${btn('순캐','mode=0;rebirth()',mode===0)}${btn('완캐','mode=1;rebirth()',mode===1)}</div><div class="roles">${levels.map((l,i)=>btn(`${i+1}환`,`stage=${i};rebirth()`,stage===i)).join('')}</div></section><section><label>환생 레벨<input type="number" min="1" value="${levels[stage]}" onchange="levels[stage]=Number(this.value);rebirth()"></label>${['체',mode===0?'완':'순','건'].map((n,i)=>`<label>${n}<input type="number" min="0" value="${alloc[stage][i]}" onchange="alloc[stage][${i}]=Number(this.value);rebirth()"></label>`).join('')}<div class="turn"><small>자동 배분 · ${mode===0?'순':'완'}</small><div class="big">${r.s[mode===0?3:1]}</div></div><div class="bar">${r.s.map((v,i)=>`<span style="width:${Math.max(0,v)/Math.max(1,r.total)*100}%;background:${colors[i]}"></span>`).join('')}</div><div class="stats">${r.s.map((v,i)=>`<div style="color:${colors[i]}">${['체','완','건','순'][i]}<br>${v}</div>`).join('')}</div>${btn('초기값 복원','levels=[140,140,140,140,140];alloc=defaults.map(a=>a.slice());rebirth()')}</section><section><small>${stage+1}환 결과 / 기준 최대 ${[66,98,130,161,192][stage]}</small><div class="big">${r.prev} 환포</div>${r.s.some(v=>v<0)?'<p>스탯 배분을 확인하세요.</p>':''}<div class="stats">${r.ap.map((v,i)=>`<div>${['체','완','건','순'][i]}<br>${v}</div>`).join('')}</div><div class="turn"><small>최대 환포 달성 여부</small><strong style="color:${r.prev===[66,98,130,161,192][stage]?colors[0]:colors[2]}">${r.prev===[66,98,130,161,192][stage]?'최대 환포 달성':'기준 최대와 차이 '+(r.prev-[66,98,130,161,192][stage])}</strong></div><details><summary>상세 계산 과정</summary><p>배분 가능 스탯 ${r.total} · 환포계수 ${r.k}</p><p>적용 환포 ${r.ap.join(' / ')}</p></details><div class="turn"><small>최종 5환 결과</small><div class="big">${rebCalc()[4].prev}</div></div>${btn('결과 복사','copyRebirth()')}<small>퀘스트 20점/환 고정 · 원본 공식 기반 테스트</small></section>`}

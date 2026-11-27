@@ -53,8 +53,8 @@ function move040(i,d){let a=draft040.blocks,j=i+d;if(j<0||j>=a.length)return;[a[
 function edit040(i){editing=i;let p=posts[i];draft040={...fresh040(),...clone040(p),blocks:p.blocks?clone040(p.blocks):[{type:'text',value:p.body||''}]};editor040()}function delete040(i){if(!confirm('삭제할까요?'))return;let a=posts.filter((_,j)=>j!==i);if(persist040('posts',a)){posts=a;new040()}}
 function savePost040(pub){let p=clone040(draft040);p.title=p.title.trim();p.pub=pub;p.body=p.blocks.map(b=>Array.isArray(b.value)?b.value.map(x=>x.name+' '+x.text).join('\n'):b.type==='image'?'':b.value).join('\n');if(!p.title||pub&&!p.body.trim()&&!p.blocks.some(b=>b.type==='image'&&b.value))return toast('제목과 내용을 확인하세요');let a=posts.slice();if(editing<0)a.unshift(p);else a[editing]=p;if(persist040('posts',a)){posts=a;new040();toast('로컬 저장 완료')}}
 function content040(p){return (p.blocks||[{type:'text',value:p.body||''}]).map(b=>{let v=b.value;if(Array.isArray(v)){let rows=v.filter(x=>x.text&&(b.type!=='roles'||guideRole==='전체'||guideRole===x.name));return `<section><h3>${esc(blockLabels[b.type])}</h3>${b.type==='roles'?`<div class="roles cms-roles">${['전체',...v.map(x=>x.name)].map(n=>btn(esc(n),`guideRole=${JSON.stringify(n)};refreshContent040()`,guideRole===n)).join('')}</div>`:''}${rows.map(x=>`<div class="turn"><strong>${esc(x.name)}</strong><div class="cms-text">${esc(x.text)}</div></div>`).join('')}</section>`}if(!v)return '';let body=b.type==='image'?`<img class="cms-image" src="${esc(safeImage040(v))}">`:b.type==='table'?`<div class="cms-table"><table>${v.split('\n').map(r=>`<tr>${r.split('|').map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</table></div>`:b.type==='checklist'||b.type==='order'?`<${b.type==='order'?'ol':'ul'}>${v.split('\n').filter(Boolean).map(s=>`<li>${esc(s)}</li>`).join('')}</${b.type==='order'?'ol':'ul'}>`:b.type==='link'&&/^https?:\/\/[^\s]+$/.test(v)?`<a href="${esc(v)}" target="_blank" rel="noopener">${esc(v)}</a>`:`<div class="cms-text">${esc(v)}</div>`;return `<section><h3>${esc(blockLabels[b.type])}</h3>${body}</section>`}).join('')}
-let viewed040=null;function refreshContent040(){if($('content040'))$('content040').innerHTML=content040(viewed040)}function show040(p,preview=false){viewed040=p;guideRole='전체';let d=document.createElement('dialog');d.className='cms-dialog';d.innerHTML=`<div class="line"><small>${preview?'미리보기':esc(p.cat)}</small><button onclick="this.closest('dialog').close()">닫기</button></div><h1>${ico(p.icon||defaultPostIcon(p.cat))} ${esc(p.title)}</h1><p>${esc(p.summary||'')}</p><div id="content040"></div>`;document.body.append(d);refreshContent040();d.addEventListener('close',()=>d.remove());d.showModal()}function preview040(){show040(draft040,true)}
-guideList=function(){let a=posts.map((p,i)=>({p,i})).filter(({p})=>p.pub&&(cat==='전체'||p.cat===cat)&&`${p.title} ${p.body||''} ${p.summary||''}`.includes(gq));$('guidelist').innerHTML=a.map(({p,i})=>`<section><button class="tile wide" onclick="show040(posts[${i}])"><div class="post-heading">${ico(p.icon||defaultPostIcon(p.cat))}<div><small>${esc(p.cat)}</small><h2>${esc(p.title)}</h2><small>${esc(p.summary||'')}</small></div></div></button></section>`).join('')||'<section class="empty">등록된 공략이 없습니다.</section>'};
+let viewed040=null;function refreshContent040(){if($('content040'))$('content040').innerHTML=content040(viewed040)}function show040(p,preview=false){viewed040=p;guideRole='전체';let d=document.createElement('dialog');d.className='cms-dialog';d.innerHTML=`<div class="line"><small>${preview?'미리보기':esc(p.cat)}</small><button onclick="closeScreenDialog(this.closest('dialog'))">닫기</button></div><h1>${ico(p.icon||defaultPostIcon(p.cat))} ${esc(p.title)}</h1><p>${esc(p.summary||'')}</p><div id="content040"></div>`;document.body.append(d);refreshContent040();d.addEventListener('close',()=>d.remove());d.showModal();return d}function preview040(){openScreenOverlay({kind:'preview'})}
+guideList=function(){let a=posts.map((p,i)=>({p,i})).filter(({p})=>p.pub&&(cat==='전체'||p.cat===cat)&&`${p.title} ${p.body||''} ${p.summary||''}`.includes(gq));$('guidelist').innerHTML=a.map(({p,i})=>`<section><button class="tile wide" onclick="openScreenOverlay({kind:'post',index:${i}})"><div class="post-heading">${ico(p.icon||defaultPostIcon(p.cat))}<div><small>${esc(p.cat)}</small><h2>${esc(p.title)}</h2><small>${esc(p.summary||'')}</small></div></div></button></section>`).join('')||'<section class="empty">등록된 공략이 없습니다.</section>'};
 function assess040(a,b,v){let best=Math.max(a,b),worst=Math.min(a,b);return {best,worst,valid:Number.isInteger(v)&&v>=worst&&v<=best,deficit:best-v}}
 function signed041(v){return (Number(v)>0?'+':'')+Number(v)}
 function stat041(n){return n.includes('공격')?['sword','#F87171']:n.includes('순발')?['speed','#FACC15']:n.includes('방어')?['shield','#60A5FA']:n.includes('체력')?['heart','#4ADE80']:['calc','#EDCB90']}
@@ -74,6 +74,14 @@ function itemTotal040(rows){
 }
 function formatDeficit040(deficit){return deficit?deficit+'딸':'맥옵';}
 function itemName040(p){return esc(p.name)+(p.alias?' ('+esc(p.alias)+')':'');}
+const itemCollator040=new Intl.Collator('ko-KR');
+function itemOptions040(query='',selected=-1){
+  return items040.map((item,index)=>({item,index}))
+    .filter(({item})=>`${item.name} ${item.alias??''}`.includes(query))
+    .sort((a,b)=>itemCollator040.compare(a.item.name,b.item.name))
+    .map(({item,index})=>`<option value="${index}" ${index===selected?'selected':''}>${itemName040(item)}</option>`)
+    .join('');
+}
 function itemControl040(o,i){
   const min=Math.min(o.a,o.b),max=Math.max(o.a,o.b),fixed=min===max;
   const raw=fixed?String(min):itemValues[i]??'';
@@ -89,7 +97,7 @@ function assessor040(){
   const p=items040[itemIndex];
   app.innerHTML=`<div class="assessor041"><h1>${ico('search')} 아이템 옵션 감정기</h1><section>
   <label>아이템 선택<input placeholder="아이템 이름 또는 약칭 검색" oninput="filterItems040(this.value)"></label>
-  <select id="itemSelect040" aria-label="감정할 아이템" onchange="itemSelect040(Number(this.value))">${items040.map((x,i)=>`<option value="${i}" ${i===itemIndex?'selected':''}>${itemName040(x)}</option>`).join('')}</select>
+  <select id="itemSelect040" aria-label="감정할 아이템" onchange="itemSelect040(Number(this.value))">${itemOptions040('',itemIndex)}</select>
   ${p?`<div class="post-heading"><span class="assess-icon">${ico('raid')}</span><div><strong>${itemName040(p)}</strong>
   ${p.category?`<div><small>${esc(p.category)}</small></div>`:''}${p.special?`<div class="muted">특수 옵션 ${esc(p.special)}</div>`:''}
   ${p.options.map(o=>`<div class="muted">${esc(o.name)} ${signed041(Math.min(o.a,o.b))}${o.a===o.b?'':' ~ '+signed041(Math.max(o.a,o.b))}</div>`).join('')}</div></div>`:''}</section>
@@ -100,7 +108,7 @@ function assessor040(){
   if(p)result040();
 }
 function preset041(best){items040[itemIndex].options.forEach((o,i)=>itemValues[i]=String((best?Math.max:Math.min)(o.a,o.b)));assessor040()}
-function filterItems040(q){$('itemSelect040').innerHTML='<option value="" disabled selected>아이템 선택</option>'+items040.map((p,i)=>({p,i})).filter(({p})=>(p.name+' '+p.alias).includes(q)).map(({p,i})=>`<option value="${i}">${itemName040(p)}</option>`).join('')}
+function filterItems040(q){$('itemSelect040').innerHTML='<option value="" disabled selected>아이템 선택</option>'+itemOptions040(q)}
 function max040(){items040[itemIndex].options.forEach((o,i)=>itemValues[i]=String(Math.max(o.a,o.b)));assessor040()}
 function result040(){
   const p=items040[itemIndex],rows=itemRows040(p),total=itemTotal040(rows);
