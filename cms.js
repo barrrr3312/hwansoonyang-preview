@@ -24,16 +24,20 @@ const ITEM_CATALOGUE_056=[
   {"name":"암흑 헤티아의 창","alias":"암창","category":"","options":[{"name":"공격력","a":62,"b":67},{"name":"순발력","a":-10,"b":-5},{"name":"체력","a":5,"b":5}]},
   {"name":"암흑 헤티아의 초신성 갑옷","alias":"암갑","category":"","options":[{"name":"공격력","a":3,"b":5},{"name":"방어력","a":50,"b":60},{"name":"순발력","a":-10,"b":-5},{"name":"체력","a":5,"b":10}],"special":"윤택Lv5"},
   {"name":"암흑 헤티아의 머리장식","alias":"암뚝","category":"","options":[{"name":"공격력","a":5,"b":8},{"name":"방어력","a":27,"b":33},{"name":"순발력","a":-3,"b":0},{"name":"체력","a":10,"b":15}],"special":"무지개"},
-  {"name":"암흑 헤티아의 활","alias":"암활","category":"","options":[{"name":"회피","a":3,"b":3}]},
+  {"name":"암흑 헤티아의 활","alias":"암활","category":"","options":[{"name":"공격력","a":30,"b":35},{"name":"방어력","a":-10,"b":-10},{"name":"명중","a":1,"b":10}]},
   {"name":"승리의 팬던트","alias":"승팬","category":"","options":[{"name":"공격력","a":1,"b":5},{"name":"방어력","a":1,"b":5},{"name":"순발력","a":1,"b":5},{"name":"명중","a":3,"b":3},{"name":"회피","a":3,"b":3}]}
 ];
 function loadItems040(){
   const initial=load('items040v2',null);
   if(Array.isArray(initial)){
-    const aliases=new Map(ITEM_CATALOGUE_056.filter(item=>item.alias).map(item=>[item.name,item.alias]));
+    const defaultsByName=new Map(ITEM_CATALOGUE_056.map(item=>[item.name,item]));
     return initial.map(item=>{
-      const alias=aliases.get(item.name);
-      return !item.alias && alias ? {...item,alias} : item;
+      const defaults=defaultsByName.get(item.name);
+      const [option]=item.options;
+      const isOldBow=item.name==='암흑 헤티아의 활'&&item.options.length===1&&
+        option.name==='회피'&&Number(option.a)===3&&Number(option.b)===3;
+      if(isOldBow)return {...item,alias:item.alias||defaults.alias,options:defaults.options};
+      return !item.alias&&defaults?.alias?{...item,alias:defaults.alias}:item;
     });
   }
   const legacy=load('items040',[]);
@@ -142,19 +146,26 @@ function itemSelect040(i){
 }
 const ASSESS_SCOPE_056='종합 딸 수는 공격력 + 방어력 + 순발력만 합산합니다.';
 function itemRows040(item){
+  const split=item.name==='암흑 헤티아의 활';
   return enhancedOptions040(item).map((o,i)=>{
     const base=itemValues[i];
     const raw=o.a===o.b?String(o.a):base==null||base===''?base:String(Number(base)+o.bonus);
     const result=assess040(o.a,o.b,Number(raw));
-    return {...result,name:o.name,raw,valid:raw!=null&&String(raw).trim()!==''&&result.valid,
-      counted:!o.bonusOnly&&/^(공격(력)?|방어(력)?|순발(력)?)$/.test(o.name.trim())};
+    const name=o.name.trim();
+    const scoreLabel=split&&(name==='공격력'||name==='명중')?name[0]:'';
+    return {...result,name:o.name,raw,valid:raw!=null&&String(raw).trim()!==''&&result.valid,scoreLabel,
+      counted:!o.bonusOnly&&(split?Boolean(scoreLabel):/^(공격(력)?|방어(력)?|순발(력)?)$/.test(name))};
   });
 }
 function itemTotal040(rows){
   const counted=rows.filter(r=>r.counted);
+  if(counted.some(r=>r.scoreLabel)){
+    return counted.every(r=>r.valid)?counted.map(r=>formatDeficit040(r.deficit,r.scoreLabel)).join(' '):
+      '공격력과 명중 값을 선택해 주세요';
+  }
   return !counted.length?'합산 대상 없음':counted.some(r=>!r.valid)?'공·방·순 값을 선택해 주세요':formatDeficit040(counted.reduce((sum,r)=>sum+r.deficit,0));
 }
-function formatDeficit040(deficit){return deficit?deficit+'딸':'맥옵';}
+function formatDeficit040(deficit,label=''){return label+(deficit?deficit+'딸':'맥옵');}
 function itemName040(p){return esc(p.name)+(p.alias?' ('+esc(p.alias)+')':'');}
 const itemCollator040=new Intl.Collator('ko-KR');
 function itemOptions040(query='',selected=-1){
@@ -197,21 +208,24 @@ function filterItems040(q){$('itemSelect040').innerHTML='<option value="" disabl
 function max040(){items040[itemIndex].options.forEach((o,i)=>itemValues[i]=String(Math.max(o.a,o.b)));assessor040()}
 function result040(){
   const p=items040[itemIndex],rows=itemRows040(p),total=itemTotal040(rows);
+  const split=rows.some(r=>r.scoreLabel);
+  const maxed=total==='맥옵'||(split&&rows.filter(r=>r.counted).every(r=>r.valid&&r.deficit===0));
   const selected=rows.filter(r=>r.valid);
   const invalid=rows.some(r=>r.raw!=null&&String(r.raw).trim()!==''&&!r.valid);
-  $('result040').innerHTML=`<section><div class="assess-total"><small>종합 감정 결과</small>
-  <div class="big" style="color:${total==='맥옵'?'#4ADE80':'#EDCB90'}">${total}</div>
-  <small>${ASSESS_SCOPE_056}</small></div>
+  $('result040').innerHTML=`<section><div class="assess-total"><small>${split?'암활 감정 결과':'종합 감정 결과'}</small>
+  <div class="big" style="color:${maxed?'#4ADE80':'#EDCB90'}">${total}</div>
+  <small>${split?'공격력과 명중의 맥옵 대비 차이를 각각 표시합니다.':ASSESS_SCOPE_056}</small></div>
   ${invalid?'<p class="assess-error">능력치 입력 범위를 확인해 주세요.</p>':''}
-  ${selected.map(r=>{const [,c]=stat041(r.name);return `<div class="turn assess-stat"><div class="line"><strong>${esc(r.name)}${r.counted?'':' <small>합산 제외</small>'}</strong><strong style="color:${r.deficit?'#F87171':'#4ADE80'}">${formatDeficit040(r.deficit)}</strong></div><div class="line"><strong class="assess-value">${signed041(r.raw)}</strong><small>맥옵 ${signed041(r.best)}</small></div><div class="bar" style="background:#394654"><span style="background:${r.deficit?c:'#4ADE80'};width:${r.best===r.worst?100:100*(1-r.deficit/(r.best-r.worst))}%"></span></div><div class="assess-ends"><small>최하옵</small><small>맥옵</small></div></div>`}).join('')}
+  ${selected.map(r=>{const [,c]=stat041(r.name);return `<div class="turn assess-stat"><div class="line"><strong>${esc(r.name)}${r.counted?'':' <small>합산 제외</small>'}</strong><strong style="color:${r.deficit?'#F87171':'#4ADE80'}">${formatDeficit040(r.deficit,r.scoreLabel)}</strong></div><div class="line"><strong class="assess-value">${signed041(r.raw)}</strong><small>맥옵 ${signed041(r.best)}</small></div><div class="bar" style="background:#394654"><span style="background:${r.deficit?c:'#4ADE80'};width:${r.best===r.worst?100:100*(1-r.deficit/(r.best-r.worst))}%"></span></div><div class="assess-ends"><small>최하옵</small><small>맥옵</small></div></div>`}).join('')}
   <button class="wide" ${!selected.length||invalid||rows.some(r=>r.counted&&!r.valid)?'disabled':''} onclick="copyItem040()">${ico('check')} 감정 결과 복사</button></section>`;
 }
 async function copyItem040(){
   const p=items040[itemIndex],rows=itemRows040(p);
-  const stages=[itemEnhancement040?itemEnhancement040+'강':'',itemChan040?itemChan040+'찬':''].filter(Boolean);
-  const s=[[p.name,...stages].join(' ')+(p.special?' ('+p.special+')':''),'종합 '+itemTotal040(rows),
-    ...rows.filter(r=>r.valid).map(r=>r.name+' '+signed041(r.raw)+' ('+formatDeficit040(r.deficit)+(r.counted?'':', 합산 제외')+')'),
-    ASSESS_SCOPE_056].join(' / ');
+  const split=rows.some(r=>r.scoreLabel);
+  const stages=[itemEnhancement040||split?itemEnhancement040+'강':'',itemChan040||split?itemChan040+'찬':''].filter(Boolean);
+  const s=[[p.name,...stages].join(' ')+(p.special?' ('+p.special+')':''),(split?'':'종합 ')+itemTotal040(rows),
+    ...rows.filter(r=>r.valid).map(r=>r.name+' '+signed041(r.raw)+' ('+formatDeficit040(r.deficit,r.scoreLabel)+(r.counted?'':', 합산 제외')+')'),
+    split?'공격력과 명중 개별 감정':ASSESS_SCOPE_056].join(' / ');
   try{await navigator.clipboard.writeText(s);toast('복사 완료')}catch{prompt('결과 복사',s)}
 }
 function itemAdmin040(){if(!itemDraft)itemDraft={name:'',alias:'',category:'무기',options:[{name:'공격력',a:'',b:''}]};let p=itemDraft;$('admin040').innerHTML=`<section><h2>감정 아이템 등록</h2>${[['name','정식 명칭'],['alias','약칭'],['category','분류'],['special','특수 옵션']].map(([k,n])=>`<label>${n}<input value="${esc(p[k])}" oninput="itemDraft.${k}=this.value"></label>`).join('')}<div id="itemopts040"></div>${btn('옵션 추가',"itemDraft.options.push({name:'',a:'',b:''});itemOpts040()")}${btn('저장','saveItem040()',true)}${btn('새 아이템','itemDraft=null;itemEdit=-1;itemAdmin040()')}</section><section><h2>등록 아이템</h2>${items040.map((x,i)=>`<div class="line"><span>${esc(x.name)}</span>${btn('수정',`itemEdit=${i};itemDraft=clone040(items040[${i}]);itemAdmin040()`)}${btn('삭제',`deleteItem040(${i})`)}</div>`).join('')}</section>`;itemOpts040()}
