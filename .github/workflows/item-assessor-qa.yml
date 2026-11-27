@@ -1,0 +1,45 @@
+name: Item appraisal browser validation
+on:
+  push:
+    branches: [codex/item-assessor-qa]
+permissions:
+  contents: read
+jobs:
+  assessor:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Check the real item catalogue in Chrome
+        run: |
+          node --check cms.js
+          cp index.html qa.html
+          cat >> qa.html <<'HTML'
+          <script>
+          try{
+           const check=(x,m)=>{if(!x)throw Error(m)};
+           const pick=name=>{const i=items040.findIndex(x=>x.name===name);check(i>=0,'missing item');itemSelect040(i);};
+           const vals=name=>Array.from(app.querySelector('select[aria-label="'+name+'"]').options,x=>x.value).filter(Boolean).map(Number);
+           const set=(name,v)=>{const e=app.querySelector('select[aria-label="'+name+'"]');e.value=String(v);e.dispatchEvent(new Event('input'));};
+           const total=()=>document.querySelector('.assess-total .big').textContent.trim();
+           go('assessor');
+           check(items040.length===25,'wrong item count');
+           pick('암흑 헤티아의 창');
+           check(String(vals('공격력'))==='67,66,65,64,63,62','attack range');
+           check(String(vals('순발력'))==='-5,-6,-7,-8,-9,-10','negative range');
+           check(!app.querySelector('[aria-label="방어력"]'),'blank stat shown');
+           check(String(vals('체력'))==='5','fixed HP');
+           set('공격력',62);set('순발력',-10);check(total()==='10딸','wrong deficit');
+           pick('기계 코어 장갑');
+           set('공격력',5);set('방어력',2);set('순발력',2);check(total()==='7딸','optional HP blocks sum');
+           set('체력',8);check(total()==='7딸','HP included in sum');
+           check(app.textContent.includes('공격력 + 방어력 + 순발력만 합산'),'scope not shown');
+           pick('암흑 헤티아의 활');check(String(vals('회피'))==='3'&&total()==='합산 대상 없음','evasion-only item');
+           pick('미리네아의 거울');check(app.textContent.includes('거울Lv2'),'special option missing');
+           document.body.dataset.items='pass';
+          }catch(error){document.body.dataset.items='fail: '+error.message;}
+          </script>
+          HTML
+          google-chrome --headless --disable-background-networking --user-data-dir="$(mktemp -d)" --window-size=390,844 --virtual-time-budget=8000 --dump-dom "file://$PWD/qa.html" > "$RUNNER_TEMP/item-check.html"
+          grep -o 'data-items="[^"]*"' "$RUNNER_TEMP/item-check.html"
+          grep -q 'data-items="pass"' "$RUNNER_TEMP/item-check.html"
