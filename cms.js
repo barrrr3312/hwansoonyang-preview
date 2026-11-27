@@ -5,31 +5,37 @@ const ITEM_CATALOGUE_056=[
   {"name":"아이테르의 빛","alias":"","category":"","options":[{"name":"순발력","a":3,"b":5},{"name":"회피","a":3,"b":3}]},
   {"name":"네메시스 소울 펜던트","alias":"","category":"","options":[{"name":"공격력","a":3,"b":5},{"name":"명중","a":3,"b":3}]},
   {"name":"기계 코어 장갑","alias":"","category":"","options":[{"name":"공격력","a":5,"b":8},{"name":"방어력","a":2,"b":4},{"name":"순발력","a":2,"b":4},{"name":"체력","a":8,"b":12}]},
-  {"name":"삼위일체(진)","alias":"","category":"","options":[{"name":"공격력","a":7,"b":10},{"name":"방어력","a":7,"b":10},{"name":"순발력","a":7,"b":10},{"name":"체력","a":10,"b":15}]},
-  {"name":"삼위일체(개)","alias":"","category":"","options":[{"name":"공격력","a":5,"b":7},{"name":"방어력","a":5,"b":7},{"name":"순발력","a":5,"b":7},{"name":"체력","a":5,"b":10}]},
+  {"name":"삼위일체(진)","alias":"삼진","category":"","options":[{"name":"공격력","a":7,"b":10},{"name":"방어력","a":7,"b":10},{"name":"순발력","a":7,"b":10},{"name":"체력","a":10,"b":15}]},
+  {"name":"삼위일체(개)","alias":"삼개","category":"","options":[{"name":"공격력","a":5,"b":7},{"name":"방어력","a":5,"b":7},{"name":"순발력","a":5,"b":7},{"name":"체력","a":5,"b":10}]},
   {"name":"기계파편(A)","alias":"","category":"","options":[{"name":"방어력","a":1,"b":5},{"name":"순발력","a":1,"b":5},{"name":"체력","a":5,"b":10}]},
   {"name":"기계파편(B)","alias":"","category":"","options":[{"name":"방어력","a":5,"b":10},{"name":"체력","a":5,"b":10}]},
   {"name":"기계파편(C)","alias":"","category":"","options":[{"name":"공격력","a":1,"b":5},{"name":"방어력","a":1,"b":5},{"name":"체력","a":5,"b":10}]},
   {"name":"검은불꽃 장궁","alias":"","category":"","options":[{"name":"공격력","a":25,"b":30},{"name":"방어력","a":-15,"b":-15}]},
   {"name":"미리네아의 거울","alias":"","category":"","options":[{"name":"공격력","a":1,"b":3},{"name":"방어력","a":1,"b":3},{"name":"순발력","a":1,"b":3},{"name":"체력","a":3,"b":5}],"special":"거울Lv2"},
   {"name":"헤티아의 창","alias":"헤창","category":"","options":[{"name":"공격력","a":60,"b":65},{"name":"순발력","a":-15,"b":-10},{"name":"체력","a":1,"b":5}]},
-  {"name":"헤티아의 머리장식","alias":"","category":"","options":[{"name":"공격력","a":3,"b":5},{"name":"방어력","a":25,"b":30},{"name":"순발력","a":-5,"b":-1},{"name":"체력","a":5,"b":10}],"special":"무지개"},
-  {"name":"흑룡의 발톱","alias":"","category":"","options":[{"name":"공격력","a":20,"b":20},{"name":"순발력","a":20,"b":25},{"name":"체력","a":10,"b":15}],"special":"은혜Lv6"},
+  {"name":"헤티아의 머리장식","alias":"헤뚝","category":"","options":[{"name":"공격력","a":3,"b":5},{"name":"방어력","a":25,"b":30},{"name":"순발력","a":-5,"b":-1},{"name":"체력","a":5,"b":10}],"special":"무지개"},
+  {"name":"흑룡의 발톱","alias":"흑발","category":"","options":[{"name":"공격력","a":20,"b":20},{"name":"순발력","a":20,"b":25},{"name":"체력","a":10,"b":15}],"special":"은혜Lv6"},
   {"name":"마모된 기계 장갑","alias":"","category":"","options":[{"name":"공격력","a":1,"b":3},{"name":"체력","a":3,"b":5}]},
-  {"name":"반짝이는 기계 장갑","alias":"","category":"","options":[{"name":"공격력","a":3,"b":6},{"name":"방어력","a":1,"b":2},{"name":"순발력","a":1,"b":2},{"name":"체력","a":5,"b":8}]},
-  {"name":"인어 비늘 벨트","alias":"","category":"","options":[{"name":"공격력","a":1,"b":3},{"name":"방어력","a":1,"b":3},{"name":"순발력","a":1,"b":3},{"name":"체력","a":3,"b":5},{"name":"명중","a":2,"b":2}]},
-  {"name":"빛나는 인어 벨트","alias":"","category":"","options":[{"name":"공격력","a":3,"b":5},{"name":"방어력","a":3,"b":5},{"name":"순발력","a":3,"b":5},{"name":"체력","a":5,"b":10},{"name":"명중","a":4,"b":4}]},
-  {"name":"초신성 갑옷","alias":"","category":"","options":[{"name":"공격력","a":1,"b":5},{"name":"방어력","a":45,"b":55},{"name":"순발력","a":-15,"b":-7},{"name":"체력","a":1,"b":10}],"special":"윤택Lv5"},
+  {"name":"반짝이는 기계 장갑","alias":"빤장","category":"","options":[{"name":"공격력","a":3,"b":6},{"name":"방어력","a":1,"b":2},{"name":"순발력","a":1,"b":2},{"name":"체력","a":5,"b":8}]},
+  {"name":"인어 비늘 벨트","alias":"인벨","category":"","options":[{"name":"공격력","a":1,"b":3},{"name":"방어력","a":1,"b":3},{"name":"순발력","a":1,"b":3},{"name":"체력","a":3,"b":5},{"name":"명중","a":2,"b":2}]},
+  {"name":"빛나는 인어 벨트","alias":"빛벨","category":"","options":[{"name":"공격력","a":3,"b":5},{"name":"방어력","a":3,"b":5},{"name":"순발력","a":3,"b":5},{"name":"체력","a":5,"b":10},{"name":"명중","a":4,"b":4}]},
+  {"name":"초신성 갑옷","alias":"초갑","category":"","options":[{"name":"공격력","a":1,"b":5},{"name":"방어력","a":45,"b":55},{"name":"순발력","a":-15,"b":-7},{"name":"체력","a":1,"b":10}],"special":"윤택Lv5"},
   {"name":"정령왕의 활","alias":"","category":"","options":[{"name":"공격력","a":30,"b":35},{"name":"방어력","a":-10,"b":-10}]},
   {"name":"암흑 헤티아의 창","alias":"암창","category":"","options":[{"name":"공격력","a":62,"b":67},{"name":"순발력","a":-10,"b":-5},{"name":"체력","a":5,"b":5}]},
-  {"name":"암흑 헤티아의 초신성 갑옷","alias":"","category":"","options":[{"name":"공격력","a":3,"b":5},{"name":"방어력","a":50,"b":60},{"name":"순발력","a":-10,"b":-5},{"name":"체력","a":5,"b":10}],"special":"윤택Lv5"},
-  {"name":"암흑 헤티아의 머리장식","alias":"","category":"","options":[{"name":"공격력","a":5,"b":8},{"name":"방어력","a":27,"b":33},{"name":"순발력","a":-3,"b":0},{"name":"체력","a":10,"b":15}],"special":"무지개"},
+  {"name":"암흑 헤티아의 초신성 갑옷","alias":"암갑","category":"","options":[{"name":"공격력","a":3,"b":5},{"name":"방어력","a":50,"b":60},{"name":"순발력","a":-10,"b":-5},{"name":"체력","a":5,"b":10}],"special":"윤택Lv5"},
+  {"name":"암흑 헤티아의 머리장식","alias":"암뚝","category":"","options":[{"name":"공격력","a":5,"b":8},{"name":"방어력","a":27,"b":33},{"name":"순발력","a":-3,"b":0},{"name":"체력","a":10,"b":15}],"special":"무지개"},
   {"name":"암흑 헤티아의 활","alias":"암활","category":"","options":[{"name":"회피","a":3,"b":3}]},
-  {"name":"승리의 팬던트","alias":"","category":"","options":[{"name":"공격력","a":1,"b":5},{"name":"방어력","a":1,"b":5},{"name":"순발력","a":1,"b":5},{"name":"명중","a":3,"b":3},{"name":"회피","a":3,"b":3}]}
+  {"name":"승리의 팬던트","alias":"승팬","category":"","options":[{"name":"공격력","a":1,"b":5},{"name":"방어력","a":1,"b":5},{"name":"순발력","a":1,"b":5},{"name":"명중","a":3,"b":3},{"name":"회피","a":3,"b":3}]}
 ];
 function loadItems040(){
   const initial=load('items040v2',null);
-  if(Array.isArray(initial))return initial;
+  if(Array.isArray(initial)){
+    const aliases=new Map(ITEM_CATALOGUE_056.filter(item=>item.alias).map(item=>[item.name,item.alias]));
+    return initial.map(item=>{
+      const alias=aliases.get(item.name);
+      return !item.alias && alias ? {...item,alias} : item;
+    });
+  }
   const legacy=load('items040',[]);
   const names=new Set(ITEM_CATALOGUE_056.map(item=>item.name));
   return [...ITEM_CATALOGUE_056,...(Array.isArray(legacy)?legacy.filter(item=>!names.has(item.name)):[])];
