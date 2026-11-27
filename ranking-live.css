@@ -1,0 +1,2 @@
+/* 기존 v0.5.0 UI에 한정된 랭킹 데이터 표시용 스타일만 추가 */
+.rank-position{margin:12px 0}.rank-position-label{color:#EDCB90}.rank-position .rankcard{margin-top:6px}.rank-position .stats h3{font-size:16px;margin:6px 0}.rank-position .combat .big{font-variant-numeric:tabular-nums}.rank-position .stats small{font-size:11px}
