@@ -58,14 +58,96 @@ guideList=function(){let a=posts.map((p,i)=>({p,i})).filter(({p})=>p.pub&&(cat==
 function assess040(a,b,v){let best=Math.max(a,b),worst=Math.min(a,b);return {best,worst,valid:Number.isInteger(v)&&v>=worst&&v<=best,deficit:best-v}}
 function signed041(v){return (Number(v)>0?'+':'')+Number(v)}
 function stat041(n){return n.includes('공격')?['sword','#F87171']:n.includes('순발')?['speed','#FACC15']:n.includes('방어')?['shield','#60A5FA']:n.includes('체력')?['heart','#4ADE80']:['calc','#EDCB90']}
-function itemSelect040(i){itemIndex=i;itemValues={};assessor040()}
+
+const ENHANCEMENT_KIND_040 = new Map([
+  ['검은불꽃 장궁', '무기'],
+  ['헤티아의 창', '무기'],
+  ['흑룡의 발톱', '무기'],
+  ['정령왕의 활', '무기'],
+  ['암흑 헤티아의 창', '무기'],
+  ['암흑 헤티아의 활', '무기'],
+  ['헤티아의 머리장식', '방어구'],
+  ['초신성 갑옷', '방어구'],
+  ['암흑 헤티아의 초신성 갑옷', '방어구'],
+  ['암흑 헤티아의 머리장식', '방어구'],
+]);
+const CHAN_ITEMS_040 = new Set([
+  '암흑 헤티아의 창', '암흑 헤티아의 활',
+  '암흑 헤티아의 초신성 갑옷', '암흑 헤티아의 머리장식',
+]);
+const ENHANCEMENT_STEPS_040 = {
+  무기: [
+    {공격력:1}, {공격력:1}, {공격력:1,관통:10}, {공격력:1}, {공격력:1},
+    {공격력:2,명중:3}, {공격력:1}, {공격력:1}, {공격력:2,관통:5}, {공격력:3,명중:5},
+  ],
+  방어구: [
+    {방어력:1}, {방어력:1}, {방어력:2,쉴드:10}, {방어력:1}, {방어력:1},
+    {방어력:2,내구력:10}, {방어력:1}, {방어력:2,쉴드:5}, {방어력:2}, {방어력:3,내구력:10},
+  ],
+};
+const ENHANCEMENT_STAT_NAMES_040 = new Map([
+  ['공격','공격력'], ['방어','방어력'], ['명중률','명중'], ['실드','쉴드'],
+]);
+let itemEnhancement040=0, itemChan040=0;
+
+function itemEnhancementKind040(item){
+  const kind=ENHANCEMENT_KIND_040.get(item.name)??item.category?.trim();
+  return Object.hasOwn(ENHANCEMENT_STEPS_040,kind)?kind:null;
+}
+
+function enhancementBonuses040(kind,level,chan){
+  const bonuses=new Map();
+  if(!kind)return bonuses;
+  for(const step of ENHANCEMENT_STEPS_040[kind].slice(0,level)){
+    for(const [name,value] of Object.entries(step)){
+      bonuses.set(name,(bonuses.get(name)??0)+value);
+    }
+  }
+  if(chan){
+    const name=kind==='무기'?'공격력':'방어력';
+    bonuses.set(name,(bonuses.get(name)??0)+chan*5);
+  }
+  return bonuses;
+}
+
+function enhancedOptions040(item){
+  const bonuses=enhancementBonuses040(itemEnhancementKind040(item),itemEnhancement040,
+    CHAN_ITEMS_040.has(item.name)?itemChan040:0);
+  const options=item.options.map(option=>{
+    const name=ENHANCEMENT_STAT_NAMES_040.get(option.name.trim())??option.name.trim();
+    const bonus=bonuses.get(name)??0;
+    bonuses.delete(name);
+    return {...option,a:Number(option.a)+bonus,b:Number(option.b)+bonus,bonus};
+  });
+  for(const [name,bonus] of bonuses)options.push({name,a:bonus,b:bonus,bonus,bonusOnly:true});
+  return options;
+}
+
+function itemEnhancementControls040(item,options){
+  if(!itemEnhancementKind040(item))return '';
+  const stages=(max,selected,suffix)=>Array.from({length:max+1},(_,n)=>
+    `<option value="${n}" ${n===selected?'selected':''}>${n}${suffix}</option>`).join('');
+  const bonuses=options.filter(option=>option.bonus).map(option=>esc(option.name)+' '+signed041(option.bonus));
+  return `<section><div class="assess-inputs">
+  <label>일반 강화<select aria-label="일반 강화" onchange="itemEnhancement040=Number(this.value);assessor040('일반 강화')">${stages(10,itemEnhancement040,'강')}</select></label>
+  ${CHAN_ITEMS_040.has(item.name)?`<label>찬작<select aria-label="찬작" onchange="itemChan040=Number(this.value);assessor040('찬작')">${stages(3,itemChan040,'찬')}</select></label>`:''}
+  </div>${bonuses.length?`<small>강화 증가량 · ${bonuses.join(' / ')}</small>`:''}</section>`;
+}
+function itemSelect040(i){
+  itemIndex=i;
+  itemValues={};
+  itemEnhancement040=0;
+  itemChan040=0;
+  assessor040();
+}
 const ASSESS_SCOPE_056='종합 딸 수는 공격력 + 방어력 + 순발력만 합산합니다.';
 function itemRows040(item){
-  return item.options.map((o,i)=>{
-    const raw=o.a===o.b?String(o.a):itemValues[i];
+  return enhancedOptions040(item).map((o,i)=>{
+    const base=itemValues[i];
+    const raw=o.a===o.b?String(o.a):base==null||base===''?base:String(Number(base)+o.bonus);
     const result=assess040(o.a,o.b,Number(raw));
     return {...result,name:o.name,raw,valid:raw!=null&&String(raw).trim()!==''&&result.valid,
-      counted:/^(공격(력)?|방어(력)?|순발(력)?)$/.test(o.name.trim())};
+      counted:!o.bonusOnly&&/^(공격(력)?|방어(력)?|순발(력)?)$/.test(o.name.trim())};
   });
 }
 function itemTotal040(rows){
@@ -84,8 +166,9 @@ function itemOptions040(query='',selected=-1){
 }
 function itemControl040(o,i){
   const min=Math.min(o.a,o.b),max=Math.max(o.a,o.b),fixed=min===max;
-  const raw=fixed?String(min):itemValues[i]??'';
-  const attributes=`aria-label="${esc(o.name)}" oninput="itemValues[${i}]=this.value;result040()"`;
+  const base=itemValues[i];
+  const raw=fixed?String(min):base==null||base===''?'':String(Number(base)+o.bonus);
+  const attributes=`aria-label="${esc(o.name)}" oninput="itemValues[${i}]=this.value===''?'':String(Number(this.value)-${o.bonus});result040()"`;
   if(!Number.isSafeInteger(min)||!Number.isSafeInteger(max)||max-min>1000){
     return `<input type="number" min="${min}" max="${max}" step="1" ${attributes} value="${esc(raw)}">`;
   }
@@ -93,19 +176,21 @@ function itemControl040(o,i){
   for(let n=max;n>=min;n--)options.push(`<option value="${n}" ${String(n)===raw?'selected':''}>${signed041(n)}</option>`);
   return `<select ${fixed?'disabled':''} ${attributes}>${fixed?'':'<option value="">값 선택</option>'}${options.join('')}</select>`;
 }
-function assessor040(){
+function assessor040(focusLabel){
   const p=items040[itemIndex];
+  const options=p?enhancedOptions040(p):[];
   app.innerHTML=`<div class="assessor041"><h1>${ico('search')} 아이템 옵션 감정기</h1><section>
   <label>아이템 선택<input placeholder="아이템 이름 또는 약칭 검색" oninput="filterItems040(this.value)"></label>
   <select id="itemSelect040" aria-label="감정할 아이템" onchange="itemSelect040(Number(this.value))">${itemOptions040('',itemIndex)}</select>
   ${p?`<div class="post-heading"><span class="assess-icon">${ico('raid')}</span><div><strong>${itemName040(p)}</strong>
   ${p.category?`<div><small>${esc(p.category)}</small></div>`:''}${p.special?`<div class="muted">특수 옵션 ${esc(p.special)}</div>`:''}
-  ${p.options.map(o=>`<div class="muted">${esc(o.name)} ${signed041(Math.min(o.a,o.b))}${o.a===o.b?'':' ~ '+signed041(Math.max(o.a,o.b))}</div>`).join('')}</div></div>`:''}</section>
-  ${p?`<section><div class="assess-inputs">${p.options.map((o,i)=>{
+  ${options.map(o=>`<div class="muted">${esc(o.name)} ${signed041(Math.min(o.a,o.b))}${o.a===o.b?'':' ~ '+signed041(Math.max(o.a,o.b))}</div>`).join('')}</div></div>`:''}</section>
+  ${p?`${itemEnhancementControls040(p,options)}<section>${itemEnhancement040||itemChan040?'<small>강화가 반영된 게임 내 능력치를 선택하세요.</small>':''}<div class="assess-inputs">${options.map((o,i)=>{
     const [ic,c]=stat041(o.name);
     return `<label><strong style="color:${c}">${ico(ic)} ${esc(o.name)}</strong>${itemControl040(o,i)}<small>맥옵: ${signed041(Math.max(o.a,o.b))}</small></label>`;
   }).join('')}</div></section><div id="result040"></div><div class="grid"><button onclick="preset041(false)">최하옵 테스트</button><button onclick="preset041(true)">맥옵 테스트</button></div>`:'<section>등록된 아이템 없음</section>'}</div>`;
   if(p)result040();
+  if(focusLabel)app.querySelector(`select[aria-label="${focusLabel}"]`)?.focus({preventScroll:true});
 }
 function preset041(best){items040[itemIndex].options.forEach((o,i)=>itemValues[i]=String((best?Math.max:Math.min)(o.a,o.b)));assessor040()}
 function filterItems040(q){$('itemSelect040').innerHTML='<option value="" disabled selected>아이템 선택</option>'+itemOptions040(q)}
@@ -123,7 +208,8 @@ function result040(){
 }
 async function copyItem040(){
   const p=items040[itemIndex],rows=itemRows040(p);
-  const s=[p.name+(p.special?' ('+p.special+')':''),'종합 '+itemTotal040(rows),
+  const stages=[itemEnhancement040?itemEnhancement040+'강':'',itemChan040?itemChan040+'찬':''].filter(Boolean);
+  const s=[[p.name,...stages].join(' ')+(p.special?' ('+p.special+')':''),'종합 '+itemTotal040(rows),
     ...rows.filter(r=>r.valid).map(r=>r.name+' '+signed041(r.raw)+' ('+formatDeficit040(r.deficit)+(r.counted?'':', 합산 제외')+')'),
     ASSESS_SCOPE_056].join(' / ');
   try{await navigator.clipboard.writeText(s);toast('복사 완료')}catch{prompt('결과 복사',s)}
