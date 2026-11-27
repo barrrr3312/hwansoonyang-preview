@@ -1,0 +1,103 @@
+name: Mobile navigation and item order validation
+on:
+  push:
+    branches: [codex/mobile-navigation-qa]
+permissions:
+  contents: read
+jobs:
+  navigation:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 3
+      - name: Compare the mobile home screen and exercise browser history
+        run: |
+          node --check app.js
+          node --check upgrade.js
+          node --check cms.js
+          git worktree add --detach "$RUNNER_TEMP/baseline" HEAD~2
+          for side in before after; do
+            site="$PWD"
+            if [ "$side" = before ]; then site="$RUNNER_TEMP/baseline"; fi
+            google-chrome --headless --disable-background-networking --hide-scrollbars --user-data-dir="$(mktemp -d)" --window-size=390,844 --virtual-time-budget=3000 --screenshot="$RUNNER_TEMP/$side.png" "file://$site/index.html"
+          done
+          cmp "$RUNNER_TEMP/before.png" "$RUNNER_TEMP/after.png"
+          cp index.html qa.html
+          cat >> qa.html <<'HTML'
+          <script>
+          document.addEventListener('DOMContentLoaded',async()=>{
+            const assert=(ok,message)=>{if(!ok)throw new Error(message)};
+            const click=selector=>{
+              const element=document.querySelector(selector);
+              assert(element,selector);
+              element.click();
+            };
+            const move=direction=>new Promise(resolve=>{
+              window.addEventListener('popstate',resolve,{once:true});
+              history[direction]();
+            });
+            const route=()=>history.state?.hwansoonyang;
+            const backTo=async name=>{
+              await move('back');
+              assert(route().page===name,'Back did not reach '+name);
+            };
+            const options=()=>Array.from($('itemSelect040').options).filter(o=>o.value);
+            try{
+              posts.unshift({title:'뒤로가기 확인용 공략',cat:'레이드',pub:true,body:'검증용 본문'});
+              const start=history.length;
+              click('main [onclick="go(\'guide\')"]');
+              assert(route().page==='guide'&&history.length===start+1,'Guide did not create one entry');
+              click('nav [onclick="go(\'guide\')"]');
+              assert(history.length===start+1,'Repeated tab created an entry');
+              click('#guidelist button');
+              assert(document.querySelector('dialog[open]').textContent.includes('검증용 본문'),'Guide post not visible');
+              await backTo('guide');
+              assert(!document.querySelector('dialog[open]')&&$('guidelist'),'Back did not close only the guide post');
+              await move('forward');
+              assert(document.querySelector('dialog[open]').textContent.includes('검증용 본문'),'Forward did not reopen guide post');
+              const closed=new Promise(resolve=>window.addEventListener('popstate',resolve,{once:true}));
+              click('dialog[open] button');
+              await closed;
+              assert(!route().overlay&&$('guidelist'),'Close button did not return to guide');
+              click('main [onclick="go(\'raid\')"]');
+              await backTo('guide');
+              await backTo('home');
+              click('main [onclick="go(\'pets\')"]');
+              const input=app.querySelector('input');
+              input.value=PETS[0][0];
+              input.dispatchEvent(new Event('input'));
+              click('#petlist section');
+              assert(Number.isInteger(route().petIndex)&&app.querySelector('h1').textContent===PETS[0][0],'Pet detail missing');
+              await backTo('pets');
+              assert(app.querySelector('input').value===PETS[0][0],'Back did not restore pet search');
+              await backTo('home');
+              click('nav [onclick="go(\'calc\')"]');
+              click('main [onclick="go(\'assessor\')"]');
+              const expected=items040.map(item=>item.name).sort(new Intl.Collator('ko-KR').compare);
+              assert(expected.length===25,'Catalogue size changed');
+              assert(options().map(o=>items040[Number(o.value)].name).join('|')===expected.join('|'),'Catalogue is not in Korean order');
+              const search=app.querySelector('input');
+              search.value='암';
+              search.dispatchEvent(new Event('input'));
+              const expectedFiltered=expected.filter(name=>name.includes('암'));
+              assert(options().map(o=>items040[Number(o.value)].name).join('|')===expectedFiltered.join('|'),'Search results are not in Korean order');
+              search.value='삼개';
+              search.dispatchEvent(new Event('input'));
+              assert(options().length===1&&options()[0].textContent==='삼위일체(개) (삼개)','Alias search changed');
+              $('itemSelect040').value=options()[0].value;
+              $('itemSelect040').dispatchEvent(new Event('change'));
+              assert(app.querySelector('[aria-label="공격력"]').querySelector('option[value="7"]'),'Sorted item points to the wrong option range');
+              await backTo('calc');
+              await backTo('home');
+              await move('forward');
+              assert(route().page==='calc','Forward did not return to calculations');
+              document.body.dataset.navigation='pass';
+            }catch(error){document.body.dataset.navigation='fail: '+error.message;}
+          });
+          </script>
+          HTML
+          google-chrome --headless --disable-background-networking --user-data-dir="$(mktemp -d)" --window-size=390,844 --virtual-time-budget=10000 --dump-dom "file://$PWD/qa.html" > "$RUNNER_TEMP/check.html"
+          grep -o 'data-navigation="[^"]*"' "$RUNNER_TEMP/check.html"
+          grep -q 'data-navigation="pass"' "$RUNNER_TEMP/check.html"
